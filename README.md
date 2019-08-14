@@ -2,14 +2,14 @@
 expose a service for VirtualMachineInstance (CNV, kubevirt)
 
 
-Installation
-------------
+Install
+-------
 export TARGET_NAMESPACE=your-target-namespace     (default to openshift-operators)
 
-curl -k https://raw.githubusercontent.com/AsherShoshan/cust0-pvc-operator/master/deploy.sh | bash
+curl -k https://raw.githubusercontent.com/AsherShoshan/svc4vmi-operator/master/deploy.sh | bash
 
-Uinstall
---------
+Uninstall
+---------
 export TARGET_NAMESPACE=your-target-namespace     (default to openshift-operators)
 
-curl -k https://raw.githubusercontent.com/AsherShoshan/cust0-pvc-operator/master/undeploy.sh | bash
+curl -k https://raw.githubusercontent.com/AsherShoshan/svc4vmi-operator/master/undeploy.sh | bash
