@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svc4vmi-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: svc4vmi-operator
+  template:
+    metadata:
+      labels:
+        name: svc4vmi-operator
+    spec:
+      serviceAccountName: svc4vmi-operator
+      containers:
+        - name: svc4vmi-operator
+          # v0.0.2 14/8/19
+          image: docker.io/ashershoshan/svc4vmi-operator@sha256:8aaef921f0c22758faf23f8ff210dfb02a2a3cc7d287951781eccfa017863dce
+          command:
+          - svc4vmi-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "svc4vmi-operator"
