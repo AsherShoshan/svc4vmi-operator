@@ -52,3 +52,10 @@ rules:
   - replicasets
   verbs:
   - get
+- apiGroups:
+  - kubevirt.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+    

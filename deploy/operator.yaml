@@ -17,9 +17,9 @@ spec:
         - name: svc4vmi-operator
           # v0.0.2 14/8/19
           image: docker.io/ashershoshan/svc4vmi-operator@sha256:8aaef921f0c22758faf23f8ff210dfb02a2a3cc7d287951781eccfa017863dce
+          imagePullPolicy: IfNotPresent          
           command:
           - svc4vmi-operator
-          imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
