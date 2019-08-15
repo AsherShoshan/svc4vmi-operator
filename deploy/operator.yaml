@@ -16,7 +16,9 @@ spec:
       containers:
         - name: svc4vmi-operator
           # v0.0.2 14/8/19
-          image: docker.io/ashershoshan/svc4vmi-operator@sha256:8aaef921f0c22758faf23f8ff210dfb02a2a3cc7d287951781eccfa017863dce
+          #image: docker.io/ashershoshan/svc4vmi-operator@sha256:8aaef921f0c22758faf23f8ff210dfb02a2a3cc7d287951781eccfa017863dce
+          # v0.0.3 15/8/19
+          image: docker.io/ashershoshan/svc4vmi-operator@sha256:5312715ce844b2d9e16ca5d10322c04f71ce3b005f50a89ff1340ccf55a9ecf8
           imagePullPolicy: IfNotPresent          
           command:
           - svc4vmi-operator

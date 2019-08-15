@@ -8,7 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -138,17 +140,18 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		return reconcile.Result{}, err
 	}
 
+	// Create a new Service struct
+	svc, err := r.newSvcForVmi(vmi)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	value, found := vmi.Labels["kubevirt.io/svc"]
+	validLabel := found && value == "true"
 	// Check if the Service exists  (service-name = vmi-name)
-	svc := &corev1.Service{}
 	err = r.client.Get(context.TODO(), request.NamespacedName, svc)
-
 	if err != nil {
 		if errors.IsNotFound(err) { //service not found
-			if value, found := vmi.Labels["kubevirt.io/svc"]; found && value == "true" { //only with this label && value
-				// Create a new Service struct
-				if svc, err = r.newSvcForVmi(vmi); err != nil {
-					return reconcile.Result{}, err
-				}
+			if validLabel { //only with this label && value
 				// Create the service
 				reqLogger.Info("Creating Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
 				if err = r.client.Create(context.TODO(), svc); err != nil {
@@ -158,8 +161,8 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		} else {
 			return reconcile.Result{}, err //other error
 		}
-	} else { //Service found
-		if value, found := vmi.Labels["kubevirt.io/svc"]; found && value != "true" { // Check if to delete the Service
+	} else { //Service found - check label is changed/deleted and vmi is owner of svc
+		if err := chkControllerReference(vmi, svc, r.scheme); err == nil && !validLabel {
 			reqLogger.Info("Deleting Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
 			if err = r.client.Delete(context.TODO(), svc); err != nil {
 				return reconcile.Result{}, err
@@ -198,4 +201,37 @@ func (r *Reconciler) newSvcForVmi(vmi *kvv1.VirtualMachineInstance) (*corev1.Ser
 	// Set pod instance as the owner and controller
 	err := controllerutil.SetControllerReference(vmi, svc, r.scheme)
 	return svc, err
+}
+
+func chkControllerReference(owner, object metav1.Object, scheme *runtime.Scheme) error {
+
+	ro, ok := owner.(runtime.Object)
+	if !ok {
+		return fmt.Errorf("%T is not a runtime.Object, cannot call SetControllerReference", owner)
+	}
+	gvk, err := apiutil.GVKForObject(ro, scheme)
+	if err != nil {
+		return err
+	}
+	ref := *metav1.NewControllerRef(owner, schema.GroupVersionKind{Group: gvk.Group, Version: gvk.Version, Kind: gvk.Kind})
+	existingRefs := object.GetOwnerReferences()
+	for _, r := range existingRefs {
+		if referSameObject(ref, r) {
+			return nil
+		}
+	}
+	return fmt.Errorf("%T is not the owner of %T", owner, object)
+}
+
+func referSameObject(a, b metav1.OwnerReference) bool {
+
+	aGV, err := schema.ParseGroupVersion(a.APIVersion)
+	if err != nil {
+		return false
+	}
+	bGV, err := schema.ParseGroupVersion(b.APIVersion)
+	if err != nil {
+		return false
+	}
+	return aGV == bGV && a.Kind == b.Kind && a.Name == b.Name
 }
